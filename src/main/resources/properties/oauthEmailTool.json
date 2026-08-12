@@ -1,0 +1,78 @@
+[
+  {
+    title: '@@org.joget.marketplace.email.oauthemail.message.title@@',
+    properties: [
+      {name: 'toSpecific', label: '@@org.joget.marketplace.email.oauthemail.toSpecific@@', type: 'textfield', required: 'true'},
+      {name: 'toParticipantId', label: '@@org.joget.marketplace.email.oauthemail.toParticipantId@@', type: 'textfield'},
+      {name: 'cc', label: '@@org.joget.marketplace.email.oauthemail.cc@@', type: 'textfield'},
+      {name: 'bcc', label: '@@org.joget.marketplace.email.oauthemail.bcc@@', type: 'textfield'},
+      {name: 'subject', label: '@@org.joget.marketplace.email.oauthemail.subject@@', type: 'textfield'},
+      {name: 'message', label: '@@org.joget.marketplace.email.oauthemail.message@@', type: 'textarea', cols: '60', rows: '15'},
+      {name: 'isHtml', label: '@@org.joget.marketplace.email.oauthemail.isHtml@@', type: 'checkbox', options: [{value: 'true', label: ''}]}
+    ]
+  },
+  {
+    title: '@@org.joget.marketplace.email.oauthemail.smtp.title@@',
+    properties: [
+      {name: 'from', label: '@@org.joget.marketplace.email.oauthemail.from@@', type: 'textfield', required: 'true', description: '@@org.joget.marketplace.email.oauthemail.from.desc@@'},
+      {name: 'host', label: '@@org.joget.marketplace.email.oauthemail.host@@', type: 'textfield', required: 'true', value: 'smtp.office365.com'},
+      {name: 'port', label: '@@org.joget.marketplace.email.oauthemail.port@@', type: 'textfield', required: 'true', value: '587'},
+      {name: 'security', label: '@@org.joget.marketplace.email.oauthemail.security@@', type: 'selectbox', value: 'TLS', options: [
+        {value: '', label: '@@org.joget.marketplace.email.oauthemail.security.none@@'}, {value: 'TLS', label: '@@org.joget.marketplace.email.oauthemail.security.tls@@'}, {value: 'SSL', label: '@@org.joget.marketplace.email.oauthemail.security.ssl@@'}
+      ], supportHash: 'true'},
+      {name: 'username', label: '@@org.joget.marketplace.email.oauthemail.username@@', type: 'textfield', required: 'true'},
+      {name: 'authMode', label: '@@org.joget.marketplace.email.oauthemail.authMode@@', type: 'selectbox', value: 'oauth2', options: [
+        {value: 'oauth2', label: '@@org.joget.marketplace.email.oauthemail.authMode.oauth@@'}, {value: 'password', label: '@@org.joget.marketplace.email.oauthemail.authMode.password@@'}
+      ]},
+      {name: 'password', label: '@@org.joget.marketplace.email.oauthemail.password@@', type: 'password', control_field: 'authMode', control_value: 'password', control_use_regex: 'false'},
+      {name: 'retryCount', label: '@@org.joget.marketplace.email.oauthemail.retryCount@@', type: 'number', value: '0'},
+      {name: 'retryInterval', label: '@@org.joget.marketplace.email.oauthemail.retryInterval@@', type: 'number', value: '10'}
+    ],
+    validators: [{
+      type: 'AJAX',
+      url: '[CONTEXT_PATH]/web/json/app[APP_PATH]/plugin/org.joget.marketplace.email.oauthemail.OAuthEmailTool/service?action=validate',
+      default_error_message: '@@org.joget.marketplace.email.oauthemail.validation.incomplete@@',
+      method: 'POST'
+    }]
+  },
+  {
+    title: '@@org.joget.marketplace.email.oauthemail.oauth.title@@',
+    properties: [
+      {name: 'clientId', label: '@@org.joget.marketplace.email.oauthemail.clientId@@', type: 'textfield', required: 'true', control_field: 'authMode', control_value: 'oauth2', control_use_regex: 'false'},
+      {name: 'clientSecret', label: '@@org.joget.marketplace.email.oauthemail.clientSecret@@', type: 'password', control_field: 'authMode', control_value: 'oauth2', control_use_regex: 'false'},
+      {name: 'tenantId', label: '@@org.joget.marketplace.email.oauthemail.tenantId@@', type: 'textfield', description: '@@org.joget.marketplace.email.oauthemail.tenantId.desc@@', control_field: 'authMode', control_value: 'oauth2', control_use_regex: 'false'},
+      {name: 'authorizationUrl', label: '@@org.joget.marketplace.email.oauthemail.authorizationUrl@@', type: 'textfield', value: 'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/authorize', description: '@@org.joget.marketplace.email.oauthemail.authorizationUrl.desc@@', control_field: 'authMode', control_value: 'oauth2', control_use_regex: 'false'},
+      {name: 'tokenUrl', label: '@@org.joget.marketplace.email.oauthemail.tokenUrl@@', type: 'textfield', value: 'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token', required: 'true', control_field: 'authMode', control_value: 'oauth2', control_use_regex: 'false'},
+      {name: 'scopes', label: '@@org.joget.marketplace.email.oauthemail.scopes@@', type: 'textfield', value: 'https://outlook.office.com/SMTP.Send offline_access', description: '@@org.joget.marketplace.email.oauthemail.scopes.desc@@', control_field: 'authMode', control_value: 'oauth2', control_use_regex: 'false'},
+      {name: 'grantType', label: '@@org.joget.marketplace.email.oauthemail.grantType@@', type: 'selectbox', value: 'authorization_code', options: [
+        {value: 'authorization_code', label: '@@org.joget.marketplace.email.oauthemail.grantType.authorizationCode@@'},
+        {value: 'client_credentials', label: '@@org.joget.marketplace.email.oauthemail.grantType.clientCredentials@@'}
+      ], control_field: 'authMode', control_value: 'oauth2', control_use_regex: 'false'},
+      {name: 'redirectUri', label: '@@org.joget.marketplace.email.oauthemail.redirectUri@@', type: 'textfield', control_field: 'grantType', control_value: 'authorization_code', control_use_regex: 'false'},
+      {name: 'authorizationCode', label: '@@org.joget.marketplace.email.oauthemail.authorizationCode@@', type: 'password', description: '@@org.joget.marketplace.email.oauthemail.authorizationCode.desc@@', control_field: 'grantType', control_value: 'authorization_code', control_use_regex: 'false'},
+      {name: 'refreshToken', label: '@@org.joget.marketplace.email.oauthemail.refreshToken@@', type: 'password', description: '@@org.joget.marketplace.email.oauthemail.refreshToken.desc@@', control_field: 'grantType', control_value: 'authorization_code', control_use_regex: 'false'}
+    ],
+    buttons: [{
+      name: 'testtoken',
+      label: '@@org.joget.marketplace.email.oauthemail.testToken@@',
+      ajax_url: '[CONTEXT_PATH]/web/json/app[APP_PATH]/plugin/org.joget.marketplace.email.oauthemail.OAuthEmailTool/service?action=testtoken',
+      fields: ['username', 'clientId', 'clientSecret', 'tenantId', 'tokenUrl', 'scopes', 'grantType', 'authorizationCode', 'redirectUri', 'refreshToken']
+    }]
+  },
+  {
+    title: '@@org.joget.marketplace.email.oauthemail.attachments.title@@',
+    properties: [
+      {name: 'formDefId', label: '@@org.joget.marketplace.email.oauthemail.formDefId@@', type: 'selectbox', options_ajax: '[CONTEXT_PATH]/web/json/console/app[APP_PATH]/forms/options'},
+      {name: 'fields', label: '@@org.joget.marketplace.email.oauthemail.fields@@', type: 'grid', columns: [
+        {key: 'field', label: '@@org.joget.marketplace.email.oauthemail.field@@', options_ajax_on_change: 'formDefId', options_ajax: '[CONTEXT_PATH]/web/json/console/app[APP_PATH]/form/columns/options'},
+        {key: 'embed', label: '@@org.joget.marketplace.email.oauthemail.embed@@', type: 'truefalse'}
+      ]},
+      {name: 'files', label: '@@org.joget.marketplace.email.oauthemail.files@@', type: 'grid', columns: [
+        {key: 'path', label: '@@org.joget.marketplace.email.oauthemail.path@@'},
+        {key: 'type', label: '@@org.joget.marketplace.email.oauthemail.type@@', options: [{value: 'system', label: '@@org.joget.marketplace.email.oauthemail.type.system@@'}, {value: 'url', label: '@@org.joget.marketplace.email.oauthemail.type.url@@'}]},
+        {key: 'fileName', label: '@@org.joget.marketplace.email.oauthemail.fileName@@'},
+        {key: 'embed', label: '@@org.joget.marketplace.email.oauthemail.embed@@', type: 'truefalse'}
+      ], developer_mode: 'advanced'}
+    ]
+  }
+]
