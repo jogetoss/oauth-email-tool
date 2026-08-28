@@ -1,38 +1,34 @@
-# OAuth Email Tool for Joget DX9
+# Description
 
 A Joget Process Tool that follows the built-in Email Tool behavior while adding SMTP OAuth 2.0 (`XOAUTH2`) authentication.
 
-To setup and configure this plugin, please see the [documentation](https://kb.joget.org/jw/web/userview/jdocs/docs/sandbox/oauth-email-tool).
+To setup and configure this plugin, please see the [documentation](https://kb.joget.org/jw/web/userview/jdocs/docs/DX9/oauth-email-tool).
 
-## Capabilities
 
-- OAuth authorization-code/refresh-token and client-credentials grants
-- Automatic access-token acquisition and refresh before expiry
-- Encrypted persistent token cache using Joget's data-encryption service
-- Memory-only fallback when encryption is unavailable (tokens are never persisted as plaintext)
-- Standard SMTP username/password mode for backward-compatible configurations
-- To, participant recipients, CC, BCC, HTML/plain-text bodies, Joget hash variables, workflow variables, form upload attachments, filesystem/URL attachments, inline files, and send retries
-- Admin-only configuration validation and OAuth token test endpoint
+# Getting Help
 
-## OAuth configuration
+JogetOSS is a community-led team for open source software related to the [Joget](https://www.joget.org) no-code/low-code application platform.
+Projects under JogetOSS are community-driven and community-supported.
+To obtain support, ask questions, get answers and help others, please participate in the [Community Q&A](https://answers.joget.org/).
 
-Install `target/oauth-email-tool-9.0.0.jar`, select **OAuth Email Tool** in a process tool mapping, and configure the SMTP and OAuth sections.
+# Contributing
 
-For delegated authorization-code flows:
+This project welcomes contributions and suggestions, please open an issue or create a pull request.
 
-1. Register the redirect URI with the OAuth provider.
-2. Open the configured Authorization URL externally, replacing `{tenant}` when applicable and supplying the client ID, redirect URI, response type `code`, and configured scopes.
-3. Paste the returned code into **Authorization Code**, or supply an existing **Initial Refresh Token**.
-4. Click **Test OAuth Token** before saving. After the first successful exchange, the refresh token is cached encrypted and renewed automatically.
+Please note that all interactions fall under our [Code of Conduct](https://github.com/jogetoss/repo-template/blob/main/CODE_OF_CONDUCT.md).
 
-For client-credentials flows, select **Client Credentials** and configure the provider-specific application permissions. SMTP providers differ in whether they permit application-only SMTP access.
+# Licensing
 
-Common Microsoft 365 defaults are prefilled. Google and other providers require their own authorization/token URLs and scopes.
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
 
-## Build and test
+        http://www.apache.org/licenses/LICENSE-2.0
 
-```shell
-mvn clean package
-```
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
 
-The installable bundle is generated at `target/oauth-email-tool-9.0.0.jar`.
+NOTE: This software may depend on other packages that may be licensed under different open source licenses.
