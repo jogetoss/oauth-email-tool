@@ -36,7 +36,7 @@ public class OAuthEmailTool extends DefaultApplicationPlugin implements PluginWe
     @Override public String getName() { return "OAuth Email Tool"; }
     @Override public String getLabel() { return "OAuth Email Tool"; }
     @Override public String getDescription() { return "Sends email using OAuth 2.0 or standard SMTP authentication"; }
-    @Override public String getVersion() { return "1.0.0"; }
+    @Override public String getVersion() { return "9.0.0"; }
     @Override public String getClassName() { return getClass().getName(); }
     @Override public String getPluginIcon() { return "<i class=\"las la-envelope-open-text\"></i>"; }
 
