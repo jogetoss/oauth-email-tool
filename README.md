@@ -2,7 +2,7 @@
 
 A Joget Process Tool that follows the built-in Email Tool behavior while adding SMTP OAuth 2.0 (`XOAUTH2`) authentication.
 
-To setup and configure this plugin, please see the [documentation](https://kb.joget.org/jw/web/userview/jdocs/docs/DX9/oauth-email-tool).
+To setup and configure this plugin, please see the [documentation](https://kb.joget.org/jw/web/userview/jdocs/docs/marketplace/oauth-email-tool).
 
 
 # Getting Help
