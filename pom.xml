@@ -4,7 +4,7 @@
     <groupId>org.joget.marketplace.email.oauthemail</groupId>
     <artifactId>oauth-email-tool</artifactId>
     <packaging>bundle</packaging>
-    <version>9.0.0</version>
+    <version>9.0.1</version>
     <name>oauth-email-tool</name>
     <url>http://www.joget.org</url>
     <build>
@@ -58,7 +58,7 @@
                         
                         <!-- Plugin Information -->
                         <Joget-Name>OAuth Email Tool</Joget-Name>
-                        <Joget-Description>Sends SMTP email using OAuth 2.0 or password authentication</Joget-Description>
+                        <Joget-Description>Sends email using SMTP (OAuth 2.0 or password) or the Microsoft Graph API</Joget-Description>
                     </instructions>
                 </configuration>
             </plugin>

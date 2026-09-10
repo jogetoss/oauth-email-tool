@@ -63,14 +63,20 @@
                 "label": "@@org.joget.marketplace.email.oauthemail.host@@",
                 "type": "textfield",
                 "required": "true",
-                "value": ""
+                "value": "",
+                "control_field": "authMode",
+                "control_value": "oauth2|password",
+                "control_use_regex": "true"
             },
             {
                 "name": "port",
                 "label": "@@org.joget.marketplace.email.oauthemail.port@@",
                 "type": "textfield",
                 "required": "true",
-                "value": "587"
+                "value": "587",
+                "control_field": "authMode",
+                "control_value": "oauth2|password",
+                "control_use_regex": "true"
             },
             {
                 "name": "security",
@@ -91,13 +97,19 @@
                         "label": "@@org.joget.marketplace.email.oauthemail.security.ssl@@"
                     }
                 ],
-                "supportHash": "true"
+                "supportHash": "true",
+                "control_field": "authMode",
+                "control_value": "oauth2|password",
+                "control_use_regex": "true"
             },
             {
                 "name": "username",
                 "label": "@@org.joget.marketplace.email.oauthemail.username@@",
                 "type": "textfield",
-                "required": "true"
+                "required": "true",
+                "control_field": "authMode",
+                "control_value": "oauth2|password",
+                "control_use_regex": "true"
             },
             {
                 "name": "authMode",
@@ -112,6 +124,10 @@
                     {
                         "value": "password",
                         "label": "@@org.joget.marketplace.email.oauthemail.authMode.password@@"
+                    },
+                    {
+                        "value": "graph",
+                        "label": "@@org.joget.marketplace.email.oauthemail.authMode.graph@@"
                     }
                 ]
             },
@@ -154,16 +170,16 @@
                 "type": "textfield",
                 "required": "true",
                 "control_field": "authMode",
-                "control_value": "oauth2",
-                "control_use_regex": "false"
+                "control_value": "oauth2|graph",
+                "control_use_regex": "true"
             },
             {
                 "name": "clientSecret",
                 "label": "@@org.joget.marketplace.email.oauthemail.clientSecret@@",
                 "type": "password",
                 "control_field": "authMode",
-                "control_value": "oauth2",
-                "control_use_regex": "false"
+                "control_value": "oauth2|graph",
+                "control_use_regex": "true"
             },
             {
                 "name": "tenantId",
@@ -171,8 +187,8 @@
                 "type": "textfield",
                 "description": "@@org.joget.marketplace.email.oauthemail.tenantId.desc@@",
                 "control_field": "authMode",
-                "control_value": "oauth2",
-                "control_use_regex": "false"
+                "control_value": "oauth2|graph",
+                "control_use_regex": "true"
             },
             {
                 "name": "authorizationUrl",
@@ -180,8 +196,8 @@
                 "type": "textfield",
                 "value": "",
                 "description": "@@org.joget.marketplace.email.oauthemail.authorizationUrl.desc@@",
-                "control_field": "authMode",
-                "control_value": "oauth2",
+                "control_field": "grantType",
+                "control_value": "authorization_code",
                 "control_use_regex": "false"
             },
             {
@@ -191,8 +207,8 @@
                 "value": "",
                 "required": "true",
                 "control_field": "authMode",
-                "control_value": "oauth2",
-                "control_use_regex": "false"
+                "control_value": "oauth2|graph",
+                "control_use_regex": "true"
             },
             {
                 "name": "scopes",
@@ -201,8 +217,8 @@
                 "value": "",
                 "description": "@@org.joget.marketplace.email.oauthemail.scopes.desc@@",
                 "control_field": "authMode",
-                "control_value": "oauth2",
-                "control_use_regex": "false"
+                "control_value": "oauth2|graph",
+                "control_use_regex": "true"
             },
             {
                 "name": "grantType",
@@ -220,8 +236,8 @@
                     }
                 ],
                 "control_field": "authMode",
-                "control_value": "oauth2",
-                "control_use_regex": "false"
+                "control_value": "oauth2|graph",
+                "control_use_regex": "true"
             },
             {
                 "name": "redirectUri",
@@ -248,6 +264,17 @@
                 "control_field": "grantType",
                 "control_value": "authorization_code",
                 "control_use_regex": "false"
+            },
+            {
+                "name": "sendMailUrl",
+                "label": "@@org.joget.marketplace.email.oauthemail.sendMailUrl@@",
+                "type": "textfield",
+                "value": "https://graph.microsoft.com/v1.0/users/{from}/sendMail",
+                "required": "true",
+                "description": "@@org.joget.marketplace.email.oauthemail.sendMailUrl.desc@@",
+                "control_field": "authMode",
+                "control_value": "graph",
+                "control_use_regex": "false"
             }
         ],
         "buttons": [
@@ -257,6 +284,8 @@
                 "ajax_url": "[CONTEXT_PATH]/web/json/app[APP_PATH]/plugin/org.joget.marketplace.email.oauthemail.OAuthEmailTool/service?action=testtoken",
                 "fields": [
                     "username",
+                    "from",
+                    "authMode",
                     "clientId",
                     "clientSecret",
                     "tenantId",

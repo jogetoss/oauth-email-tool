@@ -1,6 +1,12 @@
 package org.joget.marketplace.email.oauthemail;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,11 +38,13 @@ import org.json.JSONObject;
 
 public class OAuthEmailTool extends DefaultApplicationPlugin implements PluginWebSupport {
     private static final String CLASS_NAME = OAuthEmailTool.class.getName();
+    private static final HttpClient GRAPH_HTTP_CLIENT = HttpClient.newBuilder()
+            .followRedirects(HttpClient.Redirect.NORMAL).build();
 
     @Override public String getName() { return "OAuth Email Tool"; }
     @Override public String getLabel() { return "OAuth Email Tool"; }
-    @Override public String getDescription() { return "Sends email using OAuth 2.0 or standard SMTP authentication"; }
-    @Override public String getVersion() { return "9.0.0"; }
+    @Override public String getDescription() { return "Sends email using SMTP (OAuth 2.0 or password) or the Microsoft Graph API"; }
+    @Override public String getVersion() { return "9.0.1"; }
     @Override public String getClassName() { return getClass().getName(); }
     @Override public String getPluginIcon() { return "<i class=\"las la-envelope-open-text\"></i>"; }
 
@@ -51,14 +59,22 @@ public class OAuthEmailTool extends DefaultApplicationPlugin implements PluginWe
         WorkflowAssignment assignment = (WorkflowAssignment) properties.get("workflowAssignment");
         AppDefinition appDef = (AppDefinition) properties.get("appDef");
         try {
-            HtmlEmail email = buildEmail(properties, assignment, appDef);
-            String recipients = addRecipients(email, properties, assignment, appDef);
-            AppUtil.emailAttachment(properties, assignment, appDef, email);
+            String authMode = string(properties.get("authMode"));
+            BuiltEmail built = buildEmail(properties, assignment, appDef);
+            String recipients = addRecipients(built.email, properties, assignment, appDef);
+            AppUtil.emailAttachment(properties, assignment, appDef, built.email);
 
             final String profile = DynamicDataSourceManager.getCurrentProfile();
             int retryCount = AppUtil.getEmailRetryCount((String) properties.get("retryCount"));
             long retryInterval = AppUtil.getEmailRetryInterval((String) properties.get("retryInterval"));
-            Thread thread = new PluginThread(() -> sendWithRetry(email, recipients, retryCount, retryInterval));
+            Thread thread;
+            if ("graph".equals(authMode)) {
+                built.email.buildMimeMessage();
+                thread = new PluginThread(() -> sendViaGraphWithRetry(built.email, recipients, built.graphAccessToken,
+                        built.graphSendMailUrl, retryCount, retryInterval));
+            } else {
+                thread = new PluginThread(() -> sendWithRetry(built.email, recipients, retryCount, retryInterval));
+            }
             thread.setName("OAuthEmailTool-" + (profile == null ? "default" : profile));
             thread.setDaemon(true);
             thread.start();
@@ -68,28 +84,50 @@ public class OAuthEmailTool extends DefaultApplicationPlugin implements PluginWe
         return null;
     }
 
-    private HtmlEmail buildEmail(Map properties, WorkflowAssignment assignment, AppDefinition appDef) throws Exception {
-        String host = hash(properties, "host", assignment, appDef);
-        String port = hash(properties, "port", assignment, appDef);
-        String security = hash(properties, "security", assignment, appDef);
-        String username = hash(properties, "username", assignment, appDef);
-        String password = decryptHash(properties, "password", assignment, appDef);
+    private static final class BuiltEmail {
+        final HtmlEmail email;
+        final String graphAccessToken;
+        final String graphSendMailUrl;
+        BuiltEmail(HtmlEmail email, String graphAccessToken, String graphSendMailUrl) {
+            this.email = email;
+            this.graphAccessToken = graphAccessToken;
+            this.graphSendMailUrl = graphSendMailUrl;
+        }
+    }
+
+    private BuiltEmail buildEmail(Map properties, WorkflowAssignment assignment, AppDefinition appDef) throws Exception {
         String from = WorkflowUtil.processVariable((String) properties.get("from"), (String) properties.get("formDataTable"), assignment);
         String authMode = string(properties.get("authMode"));
-
-        if (host.isEmpty()) throw new PluginException("SMTP host is required");
         if (from == null || from.isEmpty()) throw new PluginException("From email address is required");
-        if (username.isEmpty()) throw new PluginException("SMTP username is required");
 
         HtmlEmail email;
-        if ("password".equals(authMode)) {
-            email = AppUtil.createEmail(host, port, security, username, password, from);
+        String graphAccessToken = null;
+        String graphSendMailUrl = null;
+        if ("graph".equals(authMode)) {
+            OAuthTokenService.Configuration config = oauthConfiguration(properties, assignment, appDef, from);
+            graphAccessToken = tokenService().getAccessToken(config);
+            String template = hash(properties, "sendMailUrl", assignment, appDef);
+            if (template.isEmpty()) throw new PluginException("Microsoft Graph Send Mail Endpoint is required");
+            graphSendMailUrl = resolveGraphUrl(template, from);
+            email = createGraphEmail(from);
         } else {
-            OAuthTokenService.Configuration config = oauthConfiguration(properties, assignment, appDef, username);
-            String accessToken = tokenService().getAccessToken(config);
-            email = createOAuthEmail(host, port, security, username, accessToken, from);
+            String host = hash(properties, "host", assignment, appDef);
+            String port = hash(properties, "port", assignment, appDef);
+            String security = hash(properties, "security", assignment, appDef);
+            String username = hash(properties, "username", assignment, appDef);
+            String password = decryptHash(properties, "password", assignment, appDef);
+            if (host.isEmpty()) throw new PluginException("SMTP host is required");
+            if (username.isEmpty()) throw new PluginException("SMTP username is required");
+
+            if ("password".equals(authMode)) {
+                email = AppUtil.createEmail(host, port, security, username, password, from);
+            } else {
+                OAuthTokenService.Configuration config = oauthConfiguration(properties, assignment, appDef, username);
+                String accessToken = tokenService().getAccessToken(config);
+                email = createOAuthEmail(host, port, security, username, accessToken, from);
+            }
         }
-        if (email == null) throw new PluginException("Unable to create SMTP email session");
+        if (email == null) throw new PluginException("Unable to create email session");
 
         String subject = WorkflowUtil.processVariable((String) properties.get("subject"), (String) properties.get("formDataTable"), assignment);
         boolean html = "true".equalsIgnoreCase(string(properties.get("isHtml")));
@@ -102,7 +140,18 @@ public class OAuthEmailTool extends DefaultApplicationPlugin implements PluginWe
         email.setSubject(subject);
         email.setCharset("UTF-8");
         if (html) email.setHtmlMsg(message); else email.setMsg(message);
+        return new BuiltEmail(email, graphAccessToken, graphSendMailUrl);
+    }
+
+    private HtmlEmail createGraphEmail(String from) throws EmailException {
+        HtmlEmail email = new HtmlEmail();
+        email.setMailSession(Session.getInstance(new Properties()));
+        email.setFrom(StringUtil.encodeEmail(from));
         return email;
+    }
+
+    private static String resolveGraphUrl(String template, String from) {
+        return template.replace("{SENDER_EMAIL}", from).replace("{from}", from);
     }
 
     private HtmlEmail createOAuthEmail(String host, String port, String security, String username,
@@ -180,6 +229,46 @@ public class OAuthEmailTool extends DefaultApplicationPlugin implements PluginWe
         }
     }
 
+    private void sendViaGraphWithRetry(HtmlEmail email, String recipients, String accessToken, String sendMailUrl,
+            int retryCount, long retryInterval) {
+        String payload;
+        try {
+            ByteArrayOutputStream raw = new ByteArrayOutputStream();
+            email.getMimeMessage().writeTo(raw);
+            payload = Base64.getEncoder().encodeToString(raw.toByteArray());
+        } catch (Exception e) {
+            LogUtil.error(CLASS_NAME, e, "Unable to serialize MIME message for Microsoft Graph send");
+            return;
+        }
+        for (int attempt = 0; attempt <= retryCount; attempt++) {
+            try {
+                if (attempt > 0) Thread.sleep(retryInterval);
+                LogUtil.info(CLASS_NAME, "Sending email via Microsoft Graph from=" + email.getFromAddress()
+                        + ", to=" + recipients + ", subject=" + email.getSubject()
+                        + (attempt == 0 ? "" : ", attempt=" + attempt));
+                HttpRequest request = HttpRequest.newBuilder(URI.create(sendMailUrl))
+                        .header("Authorization", "Bearer " + accessToken)
+                        .header("Content-Type", "text/plain")
+                        .POST(HttpRequest.BodyPublishers.ofString(payload))
+                        .build();
+                HttpResponse<String> response = GRAPH_HTTP_CLIENT.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() >= 200 && response.statusCode() < 300) {
+                    LogUtil.info(CLASS_NAME, "Email sent successfully via Microsoft Graph, subject=" + email.getSubject());
+                    return;
+                }
+                LogUtil.error(CLASS_NAME, null, "Microsoft Graph send failed, status=" + response.statusCode()
+                        + ", body=" + response.body() + (attempt < retryCount ? "; retrying" : "; retries exhausted"));
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LogUtil.error(CLASS_NAME, e, "Email retry interrupted");
+                return;
+            } catch (IOException e) {
+                LogUtil.error(CLASS_NAME, e, "Microsoft Graph send failed"
+                        + (attempt < retryCount ? "; retrying" : "; retries exhausted"));
+            }
+        }
+    }
+
     private OAuthTokenService.Configuration oauthConfiguration(Map properties, WorkflowAssignment assignment,
             AppDefinition appDef, String username) {
         OAuthTokenService.Configuration config = new OAuthTokenService.Configuration();
@@ -223,16 +312,21 @@ public class OAuthEmailTool extends DefaultApplicationPlugin implements PluginWe
         String action = request.getParameter("action");
         try {
             if ("validate".equals(action)) {
-                require(request, "host", "SMTP host");
-                require(request, "port", "SMTP port");
                 require(request, "from", "From address");
-                require(request, "username", "SMTP username");
+                if (!"graph".equals(string(request.getParameter("authMode")))) {
+                    require(request, "host", "SMTP host");
+                    require(request, "port", "SMTP port");
+                    require(request, "username", "SMTP username");
+                }
                 result.put("status", "success");
             } else if ("testtoken".equals(action)) {
                 AppDefinition appDef = AppUtil.getCurrentAppDefinition();
                 Map<String, String> values = requestParameters(request);
-                OAuthTokenService.Configuration config = oauthConfiguration(values, null, appDef,
-                        hash(values, "username", null, appDef));
+                // Must match buildEmail()'s identity or this test's cached token won't be reused by the real send.
+                String identity = "graph".equals(string(request.getParameter("authMode")))
+                        ? hash(values, "from", null, appDef)
+                        : hash(values, "username", null, appDef);
+                OAuthTokenService.Configuration config = oauthConfiguration(values, null, appDef, identity);
                 tokenService().getAccessToken(config);
                 result.put("message", "OAuth access token obtained successfully.");
             } else {
@@ -242,9 +336,7 @@ public class OAuthEmailTool extends DefaultApplicationPlugin implements PluginWe
         } catch (Exception e) {
             LogUtil.error(CLASS_NAME, e, "OAuth Email Tool configuration test failed");
             result.put("status", "fail");
-            if ("validate".equals(action)) {
-                // Joget's AJAX property validator expects an array. An empty array
-                // makes it display default_error_message from the property JSON.
+            if ("validate".equals(action)) {                
                 result.put("message", new JSONArray());
             } else {
                 result.put("message", safeMessage(e));
@@ -255,7 +347,7 @@ public class OAuthEmailTool extends DefaultApplicationPlugin implements PluginWe
 
     private Map<String, String> requestParameters(HttpServletRequest request) {
         Map<String, String> values = new HashMap<>();
-        for (String name : new String[]{"username", "clientId", "clientSecret", "tenantId", "tokenUrl",
+        for (String name : new String[]{"username", "from", "clientId", "clientSecret", "tenantId", "tokenUrl",
                 "scopes", "grantType", "authorizationCode", "redirectUri", "refreshToken"}) {
             values.put(name, request.getParameter(name));
         }
